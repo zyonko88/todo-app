@@ -7,388 +7,416 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    :root {
+      --bg: #f5f5f7;
+      --card: #ffffff;
+      --primary: #3b82f6;
+      --primary-dark: #2563eb;
+      --danger: #ef4444;
+      --text: #111827;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --todo-bg: #f9fafb;
+      --doing-bg: #eff6ff;
+      --doing-border: #bfdbfe;
+      --done-bg: #f0fdf4;
+      --done-border: #bbf7d0;
+    }
+
     body {
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      background: #f0f2f5;
+      font-family: 'Hiragino Sans', 'Noto Sans JP', system-ui, sans-serif;
+      background: var(--bg);
       min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      padding: 40px 16px;
+      color: var(--text);
     }
 
-    .app {
-      width: 100%;
-      max-width: 560px;
+    header {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 20px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
     }
 
-    h1 {
-      font-size: 1.8rem;
+    header h1 {
+      font-size: 1.2rem;
       font-weight: 700;
-      color: #1a1a2e;
-      margin-bottom: 24px;
-      letter-spacing: -0.5px;
+      letter-spacing: -0.3px;
     }
 
-    h1 span { color: #4f46e5; }
+    header h1 span { color: var(--primary); }
 
-    /* Input area */
-    .input-row {
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px 16px 80px;
+    }
+
+    /* --- フィルター --- */
+    .filter-tabs {
       display: flex;
-      gap: 8px;
+      gap: 6px;
       margin-bottom: 20px;
+      overflow-x: auto;
+      padding-bottom: 2px;
     }
 
-    #new-task {
-      flex: 1;
-      padding: 12px 16px;
-      border: 2px solid #e2e8f0;
-      border-radius: 12px;
-      font-size: 1rem;
-      outline: none;
-      background: #fff;
-      transition: border-color 0.2s;
-    }
+    .filter-tabs::-webkit-scrollbar { display: none; }
 
-    #new-task:focus { border-color: #4f46e5; }
-
-    #add-btn {
-      padding: 12px 20px;
-      background: #4f46e5;
-      color: #fff;
-      border: none;
-      border-radius: 12px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s;
-      white-space: nowrap;
-    }
-
-    #add-btn:hover { background: #4338ca; }
-
-    /* Filter tabs */
-    .filters {
-      display: flex;
-      gap: 4px;
-      margin-bottom: 16px;
-    }
-
-    .filter-btn {
+    .tab {
+      flex-shrink: 0;
       padding: 6px 16px;
-      border: none;
       border-radius: 20px;
-      font-size: 0.875rem;
-      cursor: pointer;
-      background: transparent;
-      color: #64748b;
+      border: 1.5px solid var(--border);
+      background: var(--card);
+      font-size: 0.85rem;
       font-weight: 500;
+      color: var(--muted);
+      cursor: pointer;
       transition: all 0.15s;
     }
 
-    .filter-btn.active {
-      background: #4f46e5;
-      color: #fff;
-    }
+    .tab.active { background: var(--primary); border-color: var(--primary); color: #fff; }
 
-    .filter-btn:not(.active):hover { background: #e2e8f0; }
+    /* --- タスクカード --- */
+    .task-list { display: flex; flex-direction: column; gap: 10px; }
 
-    /* Stats */
-    .stats {
-      font-size: 0.8rem;
-      color: #94a3b8;
-      margin-bottom: 12px;
-      text-align: right;
-    }
-
-    /* List */
-    #todo-list {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .todo-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      background: #fff;
-      border-radius: 12px;
+    .task-card {
+      background: var(--card);
+      border-radius: 14px;
+      border: 1.5px solid var(--border);
       padding: 14px 16px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-      transition: opacity 0.2s, transform 0.2s;
-      animation: slideIn 0.2s ease;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      animation: fadeIn 0.18s ease;
     }
 
-    @keyframes slideIn {
-      from { opacity: 0; transform: translateY(-6px); }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
       to   { opacity: 1; transform: translateY(0); }
     }
 
-    .todo-item.done { opacity: 0.5; }
+    .task-card[data-status="着手中"] { background: var(--doing-bg); border-color: var(--doing-border); }
+    .task-card[data-status="完了"]   { background: var(--done-bg);  border-color: var(--done-border); opacity: 0.75; }
 
-    .todo-check {
-      width: 22px;
-      height: 22px;
-      border: 2px solid #cbd5e1;
-      border-radius: 50%;
+    .task-body { flex: 1; min-width: 0; }
+
+    .task-title {
+      font-size: 0.97rem;
+      font-weight: 600;
+      word-break: break-word;
+      line-height: 1.4;
+    }
+
+    .task-card[data-status="完了"] .task-title {
+      text-decoration: line-through;
+      color: var(--muted);
+    }
+
+    .task-status {
+      display: inline-block;
+      margin-top: 6px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 2px 10px;
+      border-radius: 20px;
+      letter-spacing: 0.3px;
+    }
+
+    .badge-todo   { background: #f3f4f6; color: #6b7280; }
+    .badge-doing  { background: #dbeafe; color: #1d4ed8; }
+    .badge-done   { background: #dcfce7; color: #15803d; }
+
+    .task-actions { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+
+    .btn-action {
+      border: none;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 5px 10px;
       cursor: pointer;
-      flex-shrink: 0;
+      transition: opacity 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn-action:active { opacity: 0.7; }
+
+    .btn-next   { background: #dbeafe; color: #1d4ed8; }
+    .btn-done   { background: #dcfce7; color: #15803d; }
+    .btn-delete { background: #fee2e2; color: #b91c1c; }
+
+    /* 完了タスクは次へボタン非表示 */
+    .task-card[data-status="完了"] .btn-next,
+    .task-card[data-status="完了"] .btn-done { display: none; }
+    .task-card[data-status="着手中"] .btn-next { display: none; }
+    .task-card[data-status="未着手"] .btn-done { display: none; }
+
+    /* --- 空状態 --- */
+    .empty {
+      text-align: center;
+      padding: 60px 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .empty-icon { font-size: 2.8rem; margin-bottom: 10px; }
+
+    /* --- 追加ボタン（FAB） --- */
+    .fab {
+      position: fixed;
+      bottom: 24px;
+      right: 20px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      font-size: 1.6rem;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(59,130,246,0.45);
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.15s;
+      transition: background 0.15s, transform 0.15s;
+      z-index: 20;
     }
 
-    .todo-item.done .todo-check {
-      background: #4f46e5;
-      border-color: #4f46e5;
-    }
+    .fab:active { background: var(--primary-dark); transform: scale(0.94); }
 
-    .todo-check::after {
-      content: '';
-      width: 6px;
-      height: 10px;
-      border: 2px solid #fff;
-      border-top: none;
-      border-left: none;
-      transform: rotate(45deg) translateY(-1px);
-      opacity: 0;
-      transition: opacity 0.15s;
-    }
-
-    .todo-item.done .todo-check::after { opacity: 1; }
-
-    .todo-text {
-      flex: 1;
-      font-size: 0.95rem;
-      color: #1e293b;
-      word-break: break-word;
-      transition: color 0.2s;
-    }
-
-    .todo-item.done .todo-text {
-      text-decoration: line-through;
-      color: #94a3b8;
-    }
-
-    .todo-text[contenteditable="true"] {
-      outline: none;
-      background: #f8fafc;
-      border-radius: 6px;
-      padding: 2px 6px;
-    }
-
-    .todo-actions {
+    /* --- モーダル --- */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 30;
       display: flex;
-      gap: 4px;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 0;
       opacity: 0;
-      transition: opacity 0.15s;
+      pointer-events: none;
+      transition: opacity 0.2s;
     }
 
-    .todo-item:hover .todo-actions { opacity: 1; }
-
-    .action-btn {
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 4px 6px;
-      border-radius: 6px;
-      font-size: 0.85rem;
-      color: #94a3b8;
-      transition: all 0.15s;
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: all;
     }
 
-    .action-btn:hover { background: #f1f5f9; color: #475569; }
-    .action-btn.delete:hover { color: #ef4444; background: #fef2f2; }
-
-    /* Empty state */
-    .empty {
-      text-align: center;
-      padding: 48px 0;
-      color: #cbd5e1;
-      font-size: 0.95rem;
+    .modal {
+      background: var(--card);
+      border-radius: 20px 20px 0 0;
+      padding: 24px 20px 40px;
+      width: 100%;
+      max-width: 600px;
+      transform: translateY(20px);
+      transition: transform 0.2s;
     }
 
-    .empty-icon { font-size: 2.5rem; margin-bottom: 8px; }
+    .modal-overlay.open .modal { transform: translateY(0); }
 
-    /* Clear completed */
-    .footer {
-      display: flex;
-      justify-content: flex-end;
-      margin-top: 16px;
+    .modal h2 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 16px;
     }
 
-    .clear-btn {
-      background: none;
-      border: none;
+    .modal label {
+      display: block;
       font-size: 0.8rem;
-      color: #94a3b8;
-      cursor: pointer;
-      padding: 4px 8px;
-      border-radius: 6px;
-      transition: all 0.15s;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 6px;
     }
 
-    .clear-btn:hover { color: #ef4444; background: #fef2f2; }
-    .clear-btn:disabled { opacity: 0; pointer-events: none; }
+    .modal input[type="text"], .modal select {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-size: 1rem;
+      margin-bottom: 16px;
+      outline: none;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .modal input[type="text"]:focus,
+    .modal select:focus { border-color: var(--primary); }
+
+    .modal-actions { display: flex; gap: 10px; }
+
+    .btn-cancel {
+      flex: 1;
+      padding: 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      background: transparent;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+    }
+
+    .btn-submit {
+      flex: 2;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      background: var(--primary);
+      color: #fff;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn-submit:active { background: var(--primary-dark); }
   </style>
 </head>
 <body>
-<div class="app">
+
+<header>
   <h1>My <span>TODO</span></h1>
+</header>
 
-  <div class="input-row">
-    <input id="new-task" type="text" placeholder="新しいタスクを入力..." autocomplete="off" />
-    <button id="add-btn">追加</button>
+<div class="container">
+  <div class="filter-tabs">
+    <button class="tab active" data-filter="all">すべて</button>
+    <button class="tab" data-filter="未着手">未着手</button>
+    <button class="tab" data-filter="着手中">着手中</button>
+    <button class="tab" data-filter="完了">完了</button>
   </div>
 
-  <div class="filters">
-    <button class="filter-btn active" data-filter="all">すべて</button>
-    <button class="filter-btn" data-filter="active">未完了</button>
-    <button class="filter-btn" data-filter="done">完了済み</button>
-  </div>
+  <div class="task-list" id="task-list"></div>
+</div>
 
-  <div class="stats" id="stats"></div>
+<button class="fab" id="open-modal" aria-label="タスクを追加">＋</button>
 
-  <ul id="todo-list"></ul>
-
-  <div class="footer">
-    <button class="clear-btn" id="clear-btn">完了済みを削除</button>
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <h2>タスクを追加</h2>
+    <label for="task-name">タスク名</label>
+    <input type="text" id="task-name" placeholder="タスク名を入力" autocomplete="off" />
+    <label for="task-status-select">状態</label>
+    <select id="task-status-select">
+      <option value="未着手">未着手</option>
+      <option value="着手中">着手中</option>
+      <option value="完了">完了</option>
+    </select>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="close-modal">キャンセル</button>
+      <button class="btn-submit" id="submit-task">追加する</button>
+    </div>
   </div>
 </div>
 
 <script>
-  const STORAGE_KEY = 'my-todos';
-  let todos = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  const STORAGE_KEY = 'my-todos-v2';
+  let tasks = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
   let filter = 'all';
 
-  const listEl   = document.getElementById('todo-list');
-  const inputEl  = document.getElementById('new-task');
-  const addBtn   = document.getElementById('add-btn');
-  const statsEl  = document.getElementById('stats');
-  const clearBtn = document.getElementById('clear-btn');
+  const listEl    = document.getElementById('task-list');
+  const overlay   = document.getElementById('modal-overlay');
+  const nameInput = document.getElementById('task-name');
+  const statusSel = document.getElementById('task-status-select');
 
   function save() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
   }
 
+  const BADGE = { '未着手': 'badge-todo', '着手中': 'badge-doing', '完了': 'badge-done' };
+
   function render() {
-    const visible = todos.filter(t =>
-      filter === 'all'    ? true :
-      filter === 'active' ? !t.done :
-                             t.done
-    );
-
-    const total  = todos.length;
-    const done   = todos.filter(t => t.done).length;
-    const active = total - done;
-
-    statsEl.textContent = total ? `${active} 件残り / 全 ${total} 件` : '';
-    clearBtn.disabled = done === 0;
-
-    listEl.innerHTML = '';
+    const visible = filter === 'all' ? tasks : tasks.filter(t => t.status === filter);
 
     if (!visible.length) {
-      const li = document.createElement('li');
-      li.className = 'empty';
-      li.innerHTML = `<div class="empty-icon">✅</div>タスクはありません`;
-      listEl.appendChild(li);
+      listEl.innerHTML = `
+        <div class="empty">
+          <div class="empty-icon">📋</div>
+          タスクはありません
+        </div>`;
       return;
     }
 
-    visible.forEach(todo => {
-      const li = document.createElement('li');
-      li.className = 'todo-item' + (todo.done ? ' done' : '');
-      li.dataset.id = todo.id;
-
-      li.innerHTML = `
-        <div class="todo-check" title="完了にする"></div>
-        <span class="todo-text">${escHtml(todo.text)}</span>
-        <div class="todo-actions">
-          <button class="action-btn edit-btn" title="編集">✏️</button>
-          <button class="action-btn delete delete-btn" title="削除">🗑️</button>
+    listEl.innerHTML = '';
+    visible.forEach(task => {
+      const card = document.createElement('div');
+      card.className = 'task-card';
+      card.dataset.status = task.status;
+      card.innerHTML = `
+        <div class="task-body">
+          <div class="task-title">${esc(task.name)}</div>
+          <span class="task-status ${BADGE[task.status]}">${task.status}</span>
         </div>
-      `;
-
-      li.querySelector('.todo-check').addEventListener('click', () => toggle(todo.id));
-      li.querySelector('.delete-btn').addEventListener('click', () => remove(todo.id));
-      li.querySelector('.edit-btn').addEventListener('click', () => startEdit(li, todo));
-
-      listEl.appendChild(li);
+        <div class="task-actions">
+          <button class="btn-action btn-next"  data-id="${task.id}">着手中へ</button>
+          <button class="btn-action btn-done"  data-id="${task.id}">完了にする</button>
+          <button class="btn-action btn-delete" data-id="${task.id}">削除</button>
+        </div>`;
+      listEl.appendChild(card);
     });
   }
 
-  function escHtml(s) {
+  function esc(s) {
     return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
-  function addTodo(text) {
-    text = text.trim();
-    if (!text) return;
-    todos.unshift({ id: Date.now(), text, done: false });
-    save();
-    render();
-  }
+  // イベント委譲
+  listEl.addEventListener('click', e => {
+    const btn = e.target.closest('.btn-action');
+    if (!btn) return;
+    const id = Number(btn.dataset.id);
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
 
-  function toggle(id) {
-    const t = todos.find(t => t.id === id);
-    if (t) { t.done = !t.done; save(); render(); }
-  }
-
-  function remove(id) {
-    todos = todos.filter(t => t.id !== id);
-    save(); render();
-  }
-
-  function startEdit(li, todo) {
-    const span = li.querySelector('.todo-text');
-    span.contentEditable = 'true';
-    span.focus();
-
-    const range = document.createRange();
-    range.selectNodeContents(span);
-    range.collapse(false);
-    window.getSelection().removeAllRanges();
-    window.getSelection().addRange(range);
-
-    function finish() {
-      span.contentEditable = 'false';
-      const newText = span.textContent.trim();
-      if (newText) { todo.text = newText; save(); }
-      render();
+    if (btn.classList.contains('btn-next'))   { task.status = '着手中'; save(); render(); }
+    if (btn.classList.contains('btn-done'))   { task.status = '完了';   save(); render(); }
+    if (btn.classList.contains('btn-delete')) {
+      tasks = tasks.filter(t => t.id !== id);
+      save(); render();
     }
-
-    span.addEventListener('blur', finish, { once: true });
-    span.addEventListener('keydown', e => {
-      if (e.key === 'Enter') { e.preventDefault(); span.blur(); }
-      if (e.key === 'Escape') { render(); }
-    }, { once: true });
-  }
-
-  addBtn.addEventListener('click', () => {
-    addTodo(inputEl.value);
-    inputEl.value = '';
-    inputEl.focus();
   });
 
-  inputEl.addEventListener('keydown', e => {
-    if (e.key === 'Enter') { addTodo(inputEl.value); inputEl.value = ''; }
-  });
-
-  document.querySelectorAll('.filter-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      filter = btn.dataset.filter;
-      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
+  // フィルター
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      filter = tab.dataset.filter;
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
       render();
     });
   });
 
-  clearBtn.addEventListener('click', () => {
-    todos = todos.filter(t => !t.done);
-    save(); render();
+  // モーダル開閉
+  document.getElementById('open-modal').addEventListener('click', () => {
+    nameInput.value = '';
+    statusSel.value = '未着手';
+    overlay.classList.add('open');
+    setTimeout(() => nameInput.focus(), 200);
   });
+
+  function closeModal() { overlay.classList.remove('open'); }
+  document.getElementById('close-modal').addEventListener('click', closeModal);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+
+  // 追加
+  document.getElementById('submit-task').addEventListener('click', addTask);
+  nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') addTask(); });
+
+  function addTask() {
+    const name = nameInput.value.trim();
+    if (!name) { nameInput.focus(); return; }
+    tasks.unshift({ id: Date.now(), name, status: statusSel.value });
+    save();
+    render();
+    closeModal();
+  }
 
   render();
 </script>
