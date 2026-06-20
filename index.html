@@ -318,7 +318,14 @@
 
 <script>
   const STORAGE_KEY = 'my-todos-v2';
-  let tasks = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  const SEED = [
+    { id: 1, name: '給与計算',          status: '未着手' },
+    { id: 2, name: '会計事務所へ提出',  status: '未着手' },
+    { id: 3, name: '佐藤先生へメール',  status: '未着手' },
+    { id: 4, name: '支払法人メール',    status: '未着手' },
+  ];
+  let tasks = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+  if (!tasks) { tasks = SEED; save(); }
   let filter = 'all';
 
   const listEl    = document.getElementById('task-list');
